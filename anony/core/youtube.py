@@ -20,6 +20,10 @@ from anony.helpers import Track, utils
 
 class YouTube:
     def __init__(self):
+        # Backward-compat: __main__.py still does `if yt.api: ...`
+        # We no longer use NexGenApi; OneGrab is called directly via aiohttp.
+        self.api = None
+
         self.base = "https://www.youtube.com/watch?v="
         self.api_base = getattr(
             config, "ONEGRAB_API_URL", "https://api.onegrab.fun"
@@ -70,7 +74,6 @@ class YouTube:
                     resp.raise_for_status()
                     with open(f"{self.cookie_dir}/{name}.txt", "wb") as fw:
                         fw.write(await resp.read())
-        # Re-scan on next get_cookies()
         self.cookies.clear()
         self.checked = False
         logger.info(f"Cookies saved in {self.cookie_dir}.")
@@ -97,7 +100,6 @@ class YouTube:
         return f"{sec // 60}:{sec % 60:02d}"
 
     def _extract_id(self, video_id: str) -> str:
-        """Return a filesystem-safe identifier for a video ID or URL."""
         if not video_id.startswith("http"):
             safe = re.sub(r"[^\w\-]", "_", video_id)
             return safe[:64] or "media"
@@ -111,7 +113,6 @@ class YouTube:
         return (safe[-50:] or "media")
 
     async def _api_get(self, path: str, params: dict) -> dict | None:
-        """GET a OneGrab endpoint. Returns None on failure."""
         if not self.api_key:
             return None
         headers = {"X-API-Key": self.api_key}
@@ -139,7 +140,6 @@ class YouTube:
     async def search(
         self, query: str, m_id: int, video: bool = False
     ) -> Track | None:
-        # 1) Try OneGrab API
         if self.api_key:
             data = await self._api_get(
                 "/api/search",
@@ -170,7 +170,6 @@ class YouTube:
                     video=video,
                 )
 
-        # 2) Fallback to py_yt
         try:
             _search = VideosSearch(query, limit=1, with_live=False)
             results = await _search.next()
@@ -180,9 +179,7 @@ class YouTube:
 
         if results and results["result"]:
             data = results["result"][0]
-            thumb = (
-                data.get("thumbnails", [{}])[-1].get("url") or ""
-            )
+            thumb = data.get("thumbnails", [{}])[-1].get("url") or ""
             return Track(
                 id=data.get("id"),
                 channel_name=data.get("channel", {}).get("name"),
@@ -205,7 +202,6 @@ class YouTube:
     ) -> list[Track | None]:
         tracks: list[Track | None] = []
 
-        # 1) Try OneGrab API
         if self.api_key:
             data = await self._api_get("/api/get_url", {"url": url})
             if data is not None:
@@ -232,7 +228,6 @@ class YouTube:
                     )
                 return tracks
 
-        # 2) Fallback to py_yt
         try:
             plist = await Playlist.get(url)
             for data in plist["videos"][:limit]:
@@ -264,7 +259,6 @@ class YouTube:
     ) -> str | None:
         Path("downloads").mkdir(parents=True, exist_ok=True)
 
-        # Already downloaded with any common ext?
         for ext in ("mp4", "mp3", "webm", "m4a", "opus", "mkv"):
             p = Path(f"downloads/{file_id}.{ext}")
             if p.exists():
@@ -272,7 +266,6 @@ class YouTube:
 
         link = urlparse(cdnurl)
 
-        # ---- Telegram media link (t.me/<channel>/<msg_id>) ----
         if (
             link.scheme in {"http", "https"}
             and link.hostname in {"t.me", "telegram.me"}
@@ -285,7 +278,7 @@ class YouTube:
             ):
                 channel, msg_id = parts[0], int(parts[1])
                 try:
-                    from anony import app as _app  # lazy import to avoid cycles
+                    from anony import app as _app
 
                     message = await _app.get_messages(channel, msg_id)
                     if not message or not message.media:
@@ -306,7 +299,6 @@ class YouTube:
                         try:
                             Path(downloaded).replace(target)
                         except OSError:
-                            # Cross-device fallback: just use Pyrogram's path
                             return str(downloaded)
                     return str(target)
                 except Exception as e:
@@ -319,7 +311,6 @@ class YouTube:
             )
             return None
 
-        # ---- Generic HTTP media link ----
         ext = "mp4" if is_video else "mp3"
         filename = f"downloads/{file_id}.{ext}"
         try:
@@ -358,7 +349,6 @@ class YouTube:
         )
         file_id = self._extract_id(video_id)
 
-        # 1) OneGrab API
         if self.api_key:
             data = await self._api_get(
                 "/api/track",
@@ -380,7 +370,6 @@ class YouTube:
             elif data is not None:
                 logger.warning("OneGrab /api/track returned no cdnurl")
 
-        # 2) Fallback: yt-dlp
         ext = "mp4" if video else "webm"
         filename = f"downloads/{file_id}.{ext}"
 
@@ -430,8 +419,6 @@ class YouTube:
                     logger.warning("Download failed: %s", ex)
                     return None
 
-            # yt-dlp may use a slightly different ext than we guessed —
-            # pick the newest matching file.
             matches = sorted(
                 Path("downloads").glob(f"{file_id}.*"),
                 key=lambda p: p.stat().st_mtime,
