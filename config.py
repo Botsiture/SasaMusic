@@ -22,11 +22,11 @@ class Config:
         self.SESSION2 = getenv("SESSION2", None)
         self.SESSION3 = getenv("SESSION3", None)
 
-        self.SUPPORT_CHANNEL = getenv("SUPPORT_CHANNEL", "https://t.me/fallenx")
-        self.SUPPORT_CHAT = getenv("SUPPORT_CHAT", "https://t.me/DevilsHeavenMF")
+        self.SUPPORT_CHANNEL = getenv("SUPPORT_CHANNEL", "https://t.me/Sand_Village")
+        self.SUPPORT_CHAT = getenv("SUPPORT_CHAT", "https://t.me/Anime_Group_hai")
 
-        self.API_URL = getenv("API_URL", "https://pvtz.nexgenbots.xyz")
-        self.VIDEO_API_URL = getenv("VIDEO_API_URL", "https://api.video.nexgenbots.xyz")
+        self.API_URL = getenv("API_URL", "https://api.onegrab.fun/api/track")
+        self.VIDEO_API_URL = getenv("VIDEO_API_URL", "https://api.onegrab.fun/api/track")
         self.API_KEY = getenv("API_KEY", None) # Get this value from https://console.nexgenbots.xyz
 
         self.AUTO_LEAVE: bool = getenv("AUTO_LEAVE", "False").lower() == "true"
@@ -41,9 +41,9 @@ class Config:
             url for url in getenv("COOKIES_URL", "").split(" ")
             if url and "batbin.me" in url
         ]
-        self.DEFAULT_THUMB = getenv("DEFAULT_THUMB", "https://te.legra.ph/file/3e40a408286d4eda24191.jpg")
-        self.PING_IMG = getenv("PING_IMG", "https://files.catbox.moe/haagg2.png")
-        self.START_IMG = getenv("START_IMG", "https://files.catbox.moe/zvziwk.jpg")
+        self.DEFAULT_THUMB = getenv("DEFAULT_THUMB", "https://iili.io/Conm0qG.jpg")
+        self.PING_IMG = getenv("PING_IMG", "https://iili.io/Conm0qG.jpg")
+        self.START_IMG = getenv("START_IMG", "https://iili.io/Conm0qG.jpg")
 
     def check(self):
         missing = [
