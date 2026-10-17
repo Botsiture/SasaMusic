@@ -22,6 +22,7 @@ async def idle():
             loop.add_signal_handler(sig, stop_event.set)
     await stop_event.wait()
 
+
 async def main():
     await db.connect()
     await app.boot()
@@ -35,19 +36,26 @@ async def main():
 
     if config.COOKIES_URL:
         await yt.save_cookies(config.COOKIES_URL)
-    if yt.api: await yt.api.get_session()
+
+    # OneGrab API is stateless (per-request aiohttp) — no session warm-up needed.
+    # Kept as a safe no-op in case a future API integration needs it.
+    api_client = getattr(yt, "api", None)
+    if api_client is not None and hasattr(api_client, "get_session"):
+        await api_client.get_session()
 
     sudoers = await db.get_sudoers()
     app.sudoers.update(sudoers)
     app.bl_users.update(await db.get_blacklisted())
     logger.info(f"Loaded {len(app.sudoers)} sudo users.")
 
-    await idle()
-    await stop()
+    try:
+        await idle()
+    finally:
+        await stop()
 
 
 if __name__ == "__main__":
     try:
-        asyncio.get_event_loop().run_until_complete(main())
+        asyncio.run(main())
     except KeyboardInterrupt:
         pass
