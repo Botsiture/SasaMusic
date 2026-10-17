@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
 class Config:
     def __init__(self):
         self.API_ID = int(getenv("API_ID", 0))
@@ -25,13 +26,19 @@ class Config:
         self.SUPPORT_CHANNEL = getenv("SUPPORT_CHANNEL", "https://t.me/Sand_Village")
         self.SUPPORT_CHAT = getenv("SUPPORT_CHAT", "https://t.me/Anime_Group_hai")
 
+        # OneGrab API — https://api.onegrab.fun
+        # Get API key: send /apikey to @FallenApiBot
+        self.ONEGRAB_API_URL = getenv("ONEGRAB_API_URL", "https://api.onegrab.fun").rstrip("/")
+        self.API_KEY = getenv("API_KEY", None)  # OneGrab API key (X-API-Key header)
+
+        # Legacy NexGen fields — kept only for backward compatibility.
+        # Not used by the new YouTube class (which talks to OneGrab directly).
         self.API_URL = getenv("API_URL", "https://api.onegrab.fun/api/track")
         self.VIDEO_API_URL = getenv("VIDEO_API_URL", "https://api.onegrab.fun/api/track")
-        self.API_KEY = getenv("API_KEY", None) # Get this value from https://console.nexgenbots.xyz
 
         self.AUTO_LEAVE: bool = getenv("AUTO_LEAVE", "False").lower() == "true"
         self.AUTO_END: bool = getenv("AUTO_END", "False").lower() == "true"
-    
+
         self.THUMB_GEN: bool = getenv("THUMB_GEN", "True").lower() == "true"
         self.VIDEO_PLAY: bool = getenv("VIDEO_PLAY", "True").lower() == "true"
 
@@ -48,8 +55,13 @@ class Config:
     def check(self):
         missing = [
             var
-            for var in ["API_ID", "API_HASH", "BOT_TOKEN", "MONGO_URL", "LOGGER_ID", "OWNER_ID", "SESSION1"]
+            for var in [
+                "API_ID", "API_HASH", "BOT_TOKEN", "MONGO_URL",
+                "LOGGER_ID", "OWNER_ID", "SESSION1",
+            ]
             if not getattr(self, var)
         ]
         if missing:
-            raise SystemExit(f"Missing required environment variables: {', '.join(missing)}")
+            raise SystemExit(
+                f"Missing required environment variables: {', '.join(missing)}"
+            )
