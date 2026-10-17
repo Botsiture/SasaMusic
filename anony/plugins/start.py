@@ -15,18 +15,17 @@ async def _help(_, m: types.Message):
     await m.reply_text(
         text=m.lang["help_menu"],
         reply_markup=buttons.help_markup(m.lang),
-        quote=True,
     )
 
 
 @app.on_message(filters.command(["start"]))
 @lang.language()
-async def start(_, message: types.Message):
+async def start(client, message: types.Message):
     if message.from_user.id in app.bl_users and message.from_user.id not in db.notified:
         return await message.reply_text(message.lang["bl_user_notify"])
 
     if len(message.command) > 1 and message.command[1] == "help":
-        return await _help(_, message)
+        return await _help(client, message)
 
     private = message.chat.type == enums.ChatType.PRIVATE
     _text = (
@@ -36,11 +35,17 @@ async def start(_, message: types.Message):
     )
 
     key = buttons.start_key(message.lang, private)
+
+    # In PM: no reply-to (clean look). In group: reply to user's /start message.
+    reply_kwargs = {}
+    if not private:
+        reply_kwargs["reply_to_message_id"] = message.id
+
     await message.reply_photo(
         photo=config.START_IMG,
         caption=_text,
         reply_markup=key,
-        quote=not private,
+        **reply_kwargs,
     )
 
     if private:
@@ -66,7 +71,6 @@ async def settings(_, message: types.Message):
         reply_markup=buttons.settings_markup(
             message.lang, admin_only, cmd_delete, _language, message.chat.id
         ),
-        quote=True,
     )
 
 
